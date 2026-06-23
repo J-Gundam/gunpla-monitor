@@ -23,4 +23,4 @@ jobs:
     - name: スクリプトを実行
       env:
         TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-      run: python app.py
+      run: python monitor.py
