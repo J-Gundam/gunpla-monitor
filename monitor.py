@@ -6,11 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 
 # ==================== 【設定欄】 ====================
-# あなたのTelegramトークン（BotFatherから貰ったもの）を貼り付けてください
-TELEGRAM_TOKEN = "8664491892:AAFvxT_-lAQ5Li3xpnr1-e--Q5Pu1HsK2sU"
-
 # ［あなた専用・完璧定価フィルター仕様］
-# 左側にAmazonの検索ワード、右側に「絶対に超えてはいけない税込定価」を設定しました
 TARGET_PRODUCTS = {
     "MG ケンプファー": 4400,
     "HGUC ケンプファー": 1980,
@@ -25,6 +21,9 @@ TARGET_PRODUCTS = {
 }
 # ====================================================
 
+# GitHubの「Secrets」から新しいトークンを安全に読み込みます
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+
 CHECKED_ASINS = set()
 
 USER_AGENTS = [
@@ -35,6 +34,10 @@ USER_AGENTS = [
 
 def send_telegram(message):
     """Telegramに1タップ購入リンクを通知する"""
+    if not TELEGRAM_TOKEN:
+        print("エラー: TELEGRAM_TOKEN が設定されていません。")
+        return
+        
     url = f"https://telegram.org{TELEGRAM_TOKEN}/getUpdates"
     try:
         res = requests.get(url).json()
@@ -46,10 +49,10 @@ def send_telegram(message):
         print(f"Telegram送信エラー: {e}")
 
 def monitor_amazon_direct():
-    """Amazonを直接裏側巡回してガンプラを最速検知する"""
+    """Amazonを巡回してガンプラを最速検知する"""
     print("Amazonのガンプラ在庫を直接巡回中...")
     
-    for keyword in TARGET_KEYWORDS:
+    for keyword, max_price in TARGET_PRODUCTS.items():
         encoded_keyword = requests.utils.quote(keyword)
         search_url = f"https://amazon.co.jp{encoded_keyword}&s=date-desc-rank"
         
@@ -84,10 +87,19 @@ def monitor_amazon_direct():
                 if price_el:
                     price_text = price_el.text.replace(',', '').strip()
                 
+                # 価格の数字チェックと定価フィルター
+                try:
+                    price_val = int(price_text)
+                    if price_val > max_price:
+                        continue # 定価より高ければスキップ
+                except ValueError:
+                    continue # 価格が取れない場合はスキップ
+                
                 CHECKED_ASINS.add(asin)
+                # 正しいAmazonカートイン直リンクURL
                 cart_url = f"https://amazon.co.jp{asin}&Quantity.1=1"
                 
-                msg = f"🔥 <b>【Amazon公式 ガンプラ検知！】</b>\n\n<b>商品:</b> {title}\n<b>価格:</b> {price_text}円\n\n🛒 <b>1タップカートイン直リンク:</b>\n{cart_url}"
+                msg = f"🔥 <b>【Amazon公式 ガンプラ検知！】</b>\n\n<b>商品:</b> {title}\n<b>価格:</b> {price_val}円（定価: {max_price}円以下）\n\n🛒 <b>1タップカートイン直リンク:</b>\n{cart_url}"
                 send_telegram(msg)
                 print(f"★Amazon直検知！Telegramへ通知: {title}")
                     
