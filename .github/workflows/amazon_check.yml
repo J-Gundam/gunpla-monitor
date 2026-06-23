@@ -26,4 +26,4 @@ jobs:
       env:
         # 先ほど設定した秘密のトークンをここに呼び出します
         TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-      run: python main.py
+      run: python monitor.py
