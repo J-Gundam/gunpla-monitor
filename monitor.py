@@ -109,4 +109,7 @@ def monitor_amazon_direct():
             print(f"Amazon巡回エラー: {e}")
 
 if __name__ == "__main__":
+    # テストのために、起動直後にメッセージを強制送信します
+    send_telegram("🤖 ガンプラBotのテスト通知です！仕組みは正常に動いています。")
+    
     monitor_amazon_direct()
