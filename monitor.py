@@ -105,6 +105,6 @@ def monitor_amazon_direct():
             print(f"巡回エラー: {e}")
 
 if __name__ == "__main__":
-    # 最優先でテスト通知
-    push_msg("🚀 【最終テスト】この通知が見えていれば大成功です！")
+    # テスト通知を消し、Amazonの巡回だけを実行するようにします
     monitor_amazon_direct()
+
