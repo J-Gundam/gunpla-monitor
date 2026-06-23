@@ -22,8 +22,8 @@ jobs:
       run: |
         pip install requests beautifulsoup4
 
+    # 一番最後の行
     - name: スクリプトを実行
       env:
-        # 先ほど設定した秘密のトークンをここに呼び出します
         TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-      run: python monitor.py
+      run: python app.py  # ← ここを app.py に変更します
