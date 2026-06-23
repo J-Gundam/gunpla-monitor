@@ -6,6 +6,9 @@ import requests
 from bs4 import BeautifulSoup
 
 # ==================== 【設定欄】 ====================
+# あなたのTelegramチャットID（固定化して確実に届くようにしました）
+MY_CHAT_ID = "8725074760"
+
 # ［あなた専用・完璧定価フィルター仕様］
 TARGET_PRODUCTS = {
     "MG ケンプファー": 4400,
@@ -21,9 +24,7 @@ TARGET_PRODUCTS = {
 }
 # ====================================================
 
-# GitHubの「Secrets」から新しいトークンを安全に読み込みます
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-
 CHECKED_ASINS = set()
 
 USER_AGENTS = [
@@ -38,12 +39,9 @@ def send_telegram(message):
         print("エラー: TELEGRAM_TOKEN が設定されていません。")
         return
         
-    url = f"https://telegram.org{TELEGRAM_TOKEN}/getUpdates"
+    send_url = f"https://telegram.org{TELEGRAM_TOKEN}/sendMessage"
+    payload = {"chat_id": MY_CHAT_ID, "text": message, "parse_mode": "HTML"}
     try:
-        res = requests.get(url).json()
-        chat_id = res["result"][-1]["message"]["chat"]["id"]
-        send_url = f"https://telegram.org{TELEGRAM_TOKEN}/sendMessage"
-        payload = {"chat_id": chat_id, "text": message, "parse_mode": "HTML"}
         requests.post(send_url, data=payload)
     except Exception as e:
         print(f"Telegram送信エラー: {e}")
@@ -87,16 +85,14 @@ def monitor_amazon_direct():
                 if price_el:
                     price_text = price_el.text.replace(',', '').strip()
                 
-                # 価格の数字チェックと定価フィルター
                 try:
                     price_val = int(price_text)
                     if price_val > max_price:
-                        continue # 定価より高ければスキップ
+                        continue
                 except ValueError:
-                    continue # 価格が取れない場合はスキップ
+                    continue
                 
                 CHECKED_ASINS.add(asin)
-                # 正しいAmazonカートイン直リンクURL
                 cart_url = f"https://amazon.co.jp{asin}&Quantity.1=1"
                 
                 msg = f"🔥 <b>【Amazon公式 ガンプラ検知！】</b>\n\n<b>商品:</b> {title}\n<b>価格:</b> {price_val}円（定価: {max_price}円以下）\n\n🛒 <b>1タップカートイン直リンク:</b>\n{cart_url}"
@@ -109,7 +105,6 @@ def monitor_amazon_direct():
             print(f"Amazon巡回エラー: {e}")
 
 if __name__ == "__main__":
-    # テストのために、起動直後にメッセージを強制送信します
-    send_telegram("🤖 ガンプラBotのテスト通知です！仕組みは正常に動いています。")
-    
+    # 保存直後のテスト通知
+    send_telegram("🤖 ガンプラBotの接続テスト成功です！本番稼働を開始します。")
     monitor_amazon_direct()
