@@ -6,10 +6,8 @@ import requests
 from bs4 import BeautifulSoup
 
 # ==================== 【設定欄】 ====================
-# あなたのTelegramチャットID（固定化して確実に届くようにしました）
 MY_CHAT_ID = "8725074760"
 
-# ［あなた専用・完璧定価フィルター仕様］
 TARGET_PRODUCTS = {
     "MG ケンプファー": 4400,
     "HGUC ケンプファー": 1980,
@@ -28,21 +26,20 @@ TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 CHECKED_ASINS = set()
 
 USER_AGENTS = [
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 ]
 
 def send_telegram(message):
-    """Telegramに1タップ購入リンクを通知する"""
+    """Telegramに確実に通知を送る"""
     if not TELEGRAM_TOKEN:
-        print("エラー: TELEGRAM_TOKEN が設定されていません。")
+        print("❌ エラー: GitHubのSecretsにTELEGRAM_TOKENが設定されていません！")
         return
         
     send_url = f"https://telegram.org{TELEGRAM_TOKEN}/sendMessage"
     payload = {"chat_id": MY_CHAT_ID, "text": message, "parse_mode": "HTML"}
     try:
-        requests.post(send_url, data=payload)
+        res = requests.post(send_url, data=payload)
+        print(f"Telegram送信試行結果: {res.status_code} - {res.text}")
     except Exception as e:
         print(f"Telegram送信エラー: {e}")
 
@@ -105,6 +102,8 @@ def monitor_amazon_direct():
             print(f"Amazon巡回エラー: {e}")
 
 if __name__ == "__main__":
-    # 保存直後のテスト通知
-    send_telegram("🤖 ガンプラBotの接続テスト成功です！本番稼働を開始します。")
+    # 【最優先】起動した瞬間に真っ先に通知をテストします
+    send_telegram("🚀 【超確定テスト】この通知が見えていれば大成功です！システム連携完了！")
+    
+    # その後にAmazonの巡回を始めます
     monitor_amazon_direct()
