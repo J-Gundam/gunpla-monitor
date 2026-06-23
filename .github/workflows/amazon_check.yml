@@ -2,9 +2,8 @@ name: Amazon Monitor
 
 on:
   schedule:
-    # 5分ごとに自動実行する設定（GitHubの混雑状況により多少遅れることがあります）
     - cron: '*/5 * * * *'
-  workflow_dispatch: # 手動でいつでも実行できるボタンを追加
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,11 +18,9 @@ jobs:
         python-version: '3.10'
 
     - name: 必要なライブラリをインストール
-      run: |
-        pip install requests beautifulsoup4
+      run: pip install requests beautifulsoup4
 
-    # 一番最後の行
     - name: スクリプトを実行
       env:
         TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-      run: python app.py  # ← ここを app.py に変更します
+      run: python app.py
