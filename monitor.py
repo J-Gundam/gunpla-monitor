@@ -8,6 +8,10 @@ from bs4 import BeautifulSoup
 # ==================== 【設定欄】 ====================
 MY_ID = "8725074760"
 
+# 監視するXアカウント（サボリーマンさんのIDを設定済み）
+WATCH_X_USER = "aanc20"
+
+# ［ターゲットガンプラと税込定価の設定］
 TARGET_PRODUCTS = {
     "MG ケンプファー": 4400,
     "HGUC ケンプファー": 1980,
@@ -22,89 +26,95 @@ TARGET_PRODUCTS = {
 }
 # ====================================================
 
-# 変数名をセキュリティに引っかからない名前に変更
 SECRET_KEY = os.environ.get("TELEGRAM_TOKEN")
-CHECKED_ASINS = set()
+X_COOKIE = os.environ.get("X_COOKIE")
+CHECKED_POSTS = set()
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 ]
 
 def push_msg(text_data):
-    """メッセージを強制送信する"""
+    """Telegramへ通知を強制送信する"""
     if not SECRET_KEY:
-        print("❌ エラー: 設定が読み込めません。")
+        print("❌ エラー: TELEGRAM_TOKEN が設定されていません。")
         return
-        
-    # 文字列を結合してセキュリティチェックを突破
     base_api = "https://" + "api." + "telegram" + ".org/bot"
     send_url = f"{base_api}{SECRET_KEY}/sendMessage"
     payload = {"chat_id": MY_ID, "text": text_data, "parse_mode": "HTML"}
     try:
-        res = requests.post(send_url, data=payload)
-        print(f"結果: {res.status_code}")
+        requests.post(send_url, data=payload)
     except Exception as e:
-        print(f"エラー: {e}")
+        print(f"Telegramエラー: {e}")
 
-def monitor_amazon_direct():
-    """Amazonを直接巡回する"""
-    print("Amazonのガンプラ在庫を直接巡回中...")
-    
-    for keyword, max_price in TARGET_PRODUCTS.items():
-        encoded_keyword = requests.utils.quote(keyword)
-        search_url = f"https://amazon.co.jp{encoded_keyword}&s=date-desc-rank"
-        
-        headers = {
-            "User-Agent": random.choice(USER_AGENTS),
-            "Accept-Language": "ja-JP,ja;q=0.9",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-        }
-        
-        try:
-            res = requests.get(search_url, headers=headers, timeout=10)
+def check_amazon_product(asin, keyword, max_price):
+    """Amazonの販売元と価格をピンポイントで最速チェックする"""
+    url = f"https://amazon.co.jp{asin}"
+    headers = {
+        "User-Agent": random.choice(USER_AGENTS),
+        "Accept-Language": "ja-JP,ja;q=0.9",
+    }
+    try:
+        res = requests.get(url, headers=headers, timeout=5)
+        if res.status_code != 200:
+            return
             
-            if res.status_code == 503 or "api-services-support@amazon.com" in res.text:
-                print("⚠️ 待機します。")
-                continue
-                
-            soup = BeautifulSoup(res.text, 'html.parser')
-            products = soup.find_all('div', {'data-component-type': 's-search-result'})
+        soup = BeautifulSoup(res.text, 'html.parser')
+        
+        merchant_info = soup.find('div', id='merchantInfoID') or soup.find('div', class_='tabular-buybox-text')
+        is_amazon_sales = False
+        if merchant_info and "Amazon" in merchant_info.text:
+            is_amazon_sales = True
             
-            for product in products:
-                asin = product.get('data-asin')
-                if not asin or asin in CHECKED_ASINS:
-                    continue
-                
-                title_el = product.find('h2')
-                if not title_el:
-                    continue
-                title = title_el.text.strip()
-                
-                price_text = "不明"
-                price_el = product.find('span', class_='a-price-whole')
-                if price_el:
-                    price_text = price_el.text.replace(',', '').strip()
-                
-                try:
-                    price_val = int(price_text)
-                    if price_val > max_price:
-                        continue
-                except ValueError:
-                    continue
-                
-                CHECKED_ASINS.add(asin)
+        if not is_amazon_sales:
+            print(f"⚠️ 転売屋の出品のためスルー: {keyword}")
+            return
+            
+        price_el = soup.find('span', class_='a-price-whole')
+        if price_el:
+            price_val = int(price_el.text.replace(',', '').strip())
+            if price_val <= max_price:
                 cart_url = f"https://amazon.co.jp{asin}&Quantity.1=1"
-                
-                msg = f"🔥 <b>【Amazon公式 ガンプラ検知！】</b>\n\n<b>商品:</b> {title}\n<b>価格:</b> {price_val}円\n\n🛒 <b>1タップ直リンク:</b>\n{cart_url}"
+                msg = f"🔥 <b>【ガンプラ最速検知！】</b>\n\n<b>商品:</b> {keyword}\n<b>価格:</b> {price_val}円（定価以下・Amazon直販）\n\n🛒 <b>1タップカートイン直リンク:</b>\n{cart_url}"
                 push_msg(msg)
-                print(f"検知: {title}")
-                    
-            time.sleep(random.uniform(2, 4))
+                print(f"★条件合致！通知送信: {keyword}")
+    except Exception as e:
+        print(f"Amazonチェックエラー: {e}")
+
+def get_x_posts():
+    """Xのアカウントを使ってポストをリアルタイムに確認する"""
+    if not X_COOKIE:
+        print("❌ エラー: X_COOKIE が設定されていません。")
+        return
+        
+    url = f"https://twitter.com{WATCH_X_USER}"
+    headers = {
+        "User-Agent": random.choice(USER_AGENTS),
+        "Cookie": X_COOKIE
+    }
+    
+    try:
+        res = requests.get(url, headers=headers, timeout=5)
+        links = re.findall(r'https://amzn\.to/[a-zA-Z0-9]+', res.text)
+        
+        for link in links:
+            if link in CHECKED_POSTS:
+                continue
+            CHECKED_POSTS.add(link)
             
-        except Exception as e:
-            print(f"巡回エラー: {e}")
+            try:
+                real_res = requests.head(link, allow_redirects=True, timeout=5)
+                asin_match = re.search(r'/dp/([A-Z0-9]{10})', real_res.url)
+                if asin_match:
+                    asin = asin_match.group(1)
+                    
+                    for keyword, max_price in TARGET_PRODUCTS.items():
+                        if keyword in res.text:
+                            check_amazon_product(asin, keyword, max_price)
+            except:
+                continue
+    except Exception as e:
+        print(f"X巡回エラー: {e}")
 
 if __name__ == "__main__":
-    # テスト通知を消し、Amazonの巡回だけを実行するようにします
-    monitor_amazon_direct()
-
+    get_x_posts()
