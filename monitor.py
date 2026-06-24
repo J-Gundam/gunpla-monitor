@@ -90,7 +90,7 @@ def fetch_timeline():
     # プログラムの内部だけでひっそりと1つの合言葉に合体させます
     full_cookie = f"{PIECE_A}{PIECE_B}"
         
-    api_url = "https://" + "://twitter.com" + WATCH_USER_ID
+        api_url = f"https://twitter.com{WATCH_USER_ID}"
     headers = {
         "User-Agent": random.choice(USER_AGENTS),
         "Cookie": full_cookie
