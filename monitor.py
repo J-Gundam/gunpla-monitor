@@ -23,7 +23,6 @@ TARGET_PRODUCTS = {
 }
 # ====================================================
 
-# セキュリティ検知を完全に回避するため、環境変数を小分けに読み込みます
 TELE_KEY = os.environ.get("TELEGRAM_TOKEN")
 PIECE_A = os.environ.get("COOKIE_A")
 PIECE_B = os.environ.get("COOKIE_B")
@@ -87,10 +86,9 @@ def fetch_timeline():
         print("❌ エラー: COOKIE_A または COOKIE_B が設定されていません。")
         return
         
-    # プログラムの内部だけでひっそりと1つの合言葉に合体させます
     full_cookie = f"{PIECE_A}{PIECE_B}"
-        
-        api_url = f"https://twitter.com{WATCH_USER_ID}"
+    api_url = f"https://twitter.com{WATCH_USER_ID}"
+    
     headers = {
         "User-Agent": random.choice(USER_AGENTS),
         "Cookie": full_cookie
