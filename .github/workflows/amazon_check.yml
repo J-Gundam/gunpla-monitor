@@ -2,6 +2,7 @@ name: Amazon Monitor
 
 on:
   schedule:
+    # 6分ごとに自動実行
     - cron: '*/6 * * * *'
   workflow_dispatch:
 
@@ -22,5 +23,8 @@ jobs:
 
     - name: スクリプトを実行
       env:
+        # ここで3つの秘密の部屋（トークン、COOKIE_A、COOKIE_B）をすべてプログラムに引き渡します
         TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        COOKIE_A: ${{ secrets.COOKIE_A }}
+        COOKIE_B: ${{ secrets.COOKIE_B }}
       run: python monitor.py
